@@ -19,10 +19,10 @@ while(ret and count < 470):
 	# 130, 175, 220 are the frames we ideally want assuming 15 fps
     sum = 0
     average = 0
-    for y in range(250):#caps at 720 y val
-        for x in range(700):# caps at 1280 x val
-            if frame[y,x] > 0:
-                sum += frame[y,x]
+    asd = frame[0:250, 0:700]
+    for x in range(700*250):
+    	if asd.item(x) > 0:
+		sum += asd.item(x)
     average = sum / (250*700)
     #print(count, average)
     if average > 50:

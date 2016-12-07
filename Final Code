@@ -1,0 +1,110 @@
+import numpy as np
+import cv2
+import subprocess
+from matplotlib import pyplot as plt
+
+#video analysis
+
+cap = cv2.VideoCapture('Kolohe.mp4')# may want to not have this hard coded
+ret, frame = cap.read()
+count = 0
+list = []
+while(ret and count < 470):
+    ret, frame = cap.read()
+    count+=1
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    (thresh, frame) = cv2.threshold(frame, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    # instead of doing histogram stuff we could calculate the average color of a region of our frame
+    # at this point frame is a black and white image of our video
+	# 130, 175, 220 are the frames we ideally want assuming 15 fps
+    sum = 0
+    average = 0
+    for y in range(250):#caps at 720 y val
+        for x in range(700):# caps at 1280 x val
+            if frame[y,x] > 0:
+                sum += frame[y,x]
+    average = sum / (250*700)
+    #print(count, average)
+    if average > 50:
+        list.append(count)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+    ret, frame = cap.read()
+# based on the video we know that we dont want the frames with the foreground whitewater skewing the average    
+for x in list:
+    if x > 240:
+        list.remove(x)
+magic = 0
+listcount = 0
+betterlist = []
+#print(list)
+#we need to convert our list values to 3 frame numbers
+for x in range(len(list)-1):
+    if list[x+1] - list[x] < 20:
+        magic += list[x]
+        listcount += 1
+    elif x+1 == len(list):
+        magic+=list[len(list)-1]
+        listcount += 1
+    else:
+        betterlist.append(int(magic/listcount))
+        magic = 0
+        listcount = 0
+
+cap.release()
+
+#slow motion stuff
+
+ss_list = []
+semi_1_list=[]
+semi_2_list=[]
+final_concat_list=[]
+SSection = "SSection"
+concatstring="concat:"
+concat = "concat"
+ts = ".ts"
+noss = 0
+mp4=".mp4"
+
+y = len(betterlist)
+slowfactor = 5.0
+#path = '/home/vixmix91/Kolohe.mp4'
+for x in range (0,y):
+	ss_list.append((betterlist[x]-8)/float(15))
+
+for sms in range(0,y):
+	subprocess.call(["ffmpeg","-i","Kolohe.mp4","-ss",str(ss_list[sms]),"-t","1","-strict","-2",SSection+str(sms)+mp4])
+
+
+for clip in range (0,y):
+	
+	subprocess.call(["ffmpeg","-i",SSection+str(clip)+mp4,"-filter:v","setpts=5.0*PTS","-strict", "-2","r2c"+str(clip)+ts])
+	semi_2_list.append('r2c'+str(clip)+ts)
+	
+
+for Srate in range (0,y+1):
+	semi_1_list.append('NFRC'+str(Srate)+ts)	
+	if (Srate==0):
+		subprocess.call(["ffmpeg","-i","Kolohe.mp4","-ss","00:00:00","-t",str(ss_list[Srate]),"-strict","-2","NFRC"+str(Srate)+ts])
+	elif (Srate>0 and Srate<y):
+		subprocess.call(["ffmpeg","-i","Kolohe.mp4","-ss",str(ss_list[Srate-1]+1),"-t",str((ss_list[Srate])-(ss_list[Srate-1]+1)),"-strict","-2","NFRC"+str(Srate)+ts])
+	else:
+		subprocess.call(["ffmpeg","-i","Kolohe.mp4","-ss",str(ss_list[Srate-1]+1),"-strict","-2","NFRC"+str(Srate)+ts])
+
+for index in range(0,y+1):
+	final_concat_list.append(semi_1_list[index])
+	if(index<y):
+		final_concat_list.append(semi_2_list[index])
+
+for parts in range(0,len(final_concat_list)):
+	if(parts<len(final_concat_list)-1):
+		concatstring+=final_concat_list[parts]+'|'
+	else:
+		concatstring+=final_concat_list[parts]
+
+#subprocess.call(["ffmpeg","-i",concatstring,"-c","copy","-bsf:a","aac_adtstoasc","TVSM.mp4"
+#subprocess.call("ffmpeg -i concat:"+concatstring+"-c copy -bsf:a aac_adtstoasc test.mp4")
+
+#subprocess.call(["ffmpeg","-i","concat:NFRC0.ts|r2c0.ts|NFRC1.ts|r2c1.ts|NFRC2.ts|r2c2.ts|NFRC3.ts","-c","copy","tester.mp4"])
+
+subprocess.call(["ffmpeg","-i",concatstring,"-c","copy","testmaster.mp4"])

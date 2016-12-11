@@ -10,49 +10,63 @@ Akoni
 import os
 from tkinter import *
 from tkinter.filedialog import askopenfilename
-import threading
-import imageio
 from PIL import Image, ImageTk
 import cv2
-from queue import Queue
-import time
 
-video_name = "C:\\Users\\akoni\\Desktop\\Akoni's school\\CST 205\\Project3\\CST-205-Project3\\Kolohe.MP4" #This is your video file path
-video = imageio.get_reader("Kolohe.MP4")
+
+cap=cv2.VideoCapture("testmaster.MP4")
+
 
 root = Tk() #Main window
+root.geometry('500x400')
 root.title('Project 3') # Window title
 
-Fcanvas = Canvas(bg="black", height=250, width=450)
-#frame=Frame(bg="black",height=250, width=450)
-def stream(label):
+Fcanvas = Canvas(bg="black", height=350, width=450)
 
-    for image in video.iter_data():
-        frame_image = ImageTk.PhotoImage(Image.fromarray(image))
-        label.config(image=frame_image)
-        label.image = frame_image 
-
-def snd2():
-    print("Nothing happens...")
+def snd1():
+    image = 'Surf'
     
-def snd3():
-    thread = threading.Thread(target=stream, args=(my_label,))
-    thread.daemon = 1
-    thread.start()
+    while cap.isOpened():
+        ret, frame = cap.read()
+      #  cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
+        cv2.imshow('image', frame)
+        #cv2.resizeWindow('frame', 580,720)
+        
+        
+        if  cv2.waitKey(26) & 0xFF == ord('q'):
+            break
+        
+def snd2():
+    filename = askopenfilename()
+
+    file = cv2.VideoCapture(filename)
+
+    while file.isOpened():
+        ret, fra = file.read()
+        cv2.imshow('Video', fra)
+        if cv2.waitKey(26) & 0xFF == ord('q'):
+            break
+    file.release()
 
 
+but=Button(root, text="Play Surf Video")
+but.config(command=snd1)
+but.pack(anchor = CENTER)
 
+but2=Button(root, text="Play Different Video")
+but2.config(command=snd2)
+but2.pack(anchor = CENTER)
 
-var = IntVar()
-rb2 = Radiobutton(root, text= "Play Video 1", variable = var, value=1, command=snd2)
-rb3 = Radiobutton(root, text= "Play Video 2", variable = var, value=2, command=snd3)
+"""
+rb1 = Radiobutton(root, text= "Play Surf Video", variable = var, value=1, command=snd1)
+rb2 = Radiobutton(root, text= "Play Different Video", variable = var, value=2, command=snd2)
+
+rb1.pack(anchor = W)
 rb2.pack(anchor = W)
-rb3.pack(anchor = W)
+"""
 
-my_label = Label(root)
-my_label.pack()
 
-Fcanvas.pack()
-#frame.pack()
+#Fcanvas.pack()
 root.mainloop()
-
+cap.release()
+cv2.destroyAllWindows()
